@@ -1,0 +1,91 @@
+    /**
+     * NEW: Calculate challan-based stock with FIFO dispatch allocation
+     * Returns individual challan rows instead of aggregated part totals
+     */
+    private async calculateChallanBasedStock(
+        organizationId: string,
+        vendorId: string,
+        periodEnd: Date
+    ): Promise<any[]> {
+        // 1. Get all challans for vendor up to period end (FIFO order)
+        const challans = await this.prisma.deliveryChallan.findMany({
+            where: {
+                organizationId,
+                vendorId,
+                challanDate: { lte: periodEnd },
+                status: { not: ChallanStatus.rejected }
+            },
+            include: { items: true },
+            orderBy: { challanDate: 'asc' } // FIFO: oldest first
+        });
+
+        // 2. Get all approved invoices up to period end
+        const invoices = await this.prisma.invoice.findMany({
+            where: {
+                vendorId,
+                status: 'approved',
+                updatedAt: { lte: periodEnd }
+            },
+            include: { items: true }
+        });
+
+        // 3. Build FIFO allocation map: challanId-partNumber -> dispatchedQty
+        const challanDispatch = new Map<string, number>();
+
+        for (const invoice of invoices) {
+            for (const invoiceItem of invoice.items) {
+                let remaining = invoiceItem.quantity;
+
+                // FIFO: Allocate to oldest challan first
+                for (const challan of challans) {
+                    if (remaining <= 0) break;
+
+                    const challanItem = challan.items.find(
+                        ci => ci.partNumber === invoiceItem.partNumber
+                    );
+                    if (!challanItem) continue;
+
+                    const key = `${challan.id}-${invoiceItem.partNumber}`;
+                    const alreadyDispatched = challanDispatch.get(key) || 0;
+                    const available = challanItem.quantityIssued - alreadyDispatched;
+
+                    if (available > 0) {
+                        const allocate = Math.min(remaining, available);
+                        challanDispatch.set(key, alreadyDispatched + allocate);
+                        remaining -= allocate;
+                    }
+                }
+
+                // If remaining > 0, it means vendor over-invoiced (shouldn't happen with validation)
+                if (remaining > 0) {
+                    console.warn(
+                        `Warning: Invoice ${invoice.invoiceNumber} has ${remaining} units ` +
+                        `of part ${invoiceItem.partNumber} that couldn't be allocated to any challan`
+                    );
+                }
+            }
+        }
+
+        // 4. Build result items (one row per challan item)
+        const items = [];
+        for (const challan of challans) {
+            for (const challanItem of challan.items) {
+                const key = `${challan.id}-${challanItem.partNumber}`;
+                const dispatchQty = challanDispatch.get(key) || 0;
+                const balanceQty = challanItem.quantityIssued - dispatchQty;
+
+                items.push({
+                    challanId: challan.id,
+                    challanNumber: challan.challanNumber,
+                    challanDate: challan.challanDate,
+                    partNumber: challanItem.partNumber,
+                    partName: challanItem.partDescription || '',
+                    challanQty: challanItem.quantityIssued,
+                    dispatchQty,
+                    balanceQty
+                });
+            }
+        }
+
+        return items;
+    }

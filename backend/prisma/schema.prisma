@@ -1,0 +1,1437 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id                    String                   @id @default(uuid())
+  name                  String
+  code                  String                   @unique
+  gstin                 String?                  @unique
+  pan                   String?
+  address               String?
+  city                  String?
+  state                 String?
+  pincode               String?
+  contactPerson         String?
+  contactEmail          String?
+  contactPhone          String?
+  subscriptionTier      String                   @default("trial")
+  subscriptionStatus    String                   @default("active")
+  subscriptionStartDate DateTime?
+  subscriptionEndDate   DateTime?
+  stripeCustomerId      String?
+  maxUsers              Int                      @default(5)
+  maxVendors            Int                      @default(10)
+  maxChallansPerMonth   Int                      @default(100)
+  primaryColor          String?                  @default("#2196f3")
+  allowedModules        String[]                 @default(["core"])
+  plants                Json?
+  isActive              Boolean                  @default(true)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  alerts                Alert[]
+  customers             Customer[]
+  challans              DeliveryChallan[]
+  endCustomers          EndCustomer[]
+  faiRecords            FirstArticleInspection[]
+  ncrs                  NonConformanceReport[]
+  parts                 Part[]
+  purchaseOrders        PurchaseOrder[]
+  stockStatements       StockStatement[]
+  users                 User[]
+  vehicleDispatches     VehicleDispatch[]
+  vendors               Vendor[]
+  linkedVendors         OrganizationVendor[]
+  quotations            VendorQuotation[]
+  trayConfigurations    TrayConfiguration[]
+  machines              Machine[]
+  partDevelopments      PartDevelopment[]
+  customerOrders        CustomerOrder[]
+  materialReceipts      MaterialReceipt[]
+  vendorLedger          VendorMaterialLedger[]
+  platformAuditLogs     PlatformAuditLog[]
+  suppliers             Supplier[]
+  gatePasses            GatePass[]
+  supplierGRNs          SupplierGRN[]
+  lineDeadlines         LineDeadline[]
+  knowledgeItems        KnowledgeItem[]
+  aiFeedbacks           AiFeedback[]
+}
+
+model User {
+  id                      String                   @id @default(uuid())
+  email                   String                   @unique
+  passwordHash            String
+  firstName               String?
+  lastName                String?
+  phone                   String?
+  isActive                Boolean                  @default(true)
+  isEmailVerified         Boolean                  @default(false)
+  lastLogin               DateTime?
+  refreshToken            String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  role                    UserRole                 @default(production_manager)
+  roleLevel               Int                      @default(5)
+  department              Department?
+  designation             String?
+  organizationId          String?
+  reportsToId             String?
+  vendorId                String?
+  auditLogs               AuditLog[]
+  createdCustomers        Customer[]               @relation("CreatedBy")
+  createdChallans         DeliveryChallan[]        @relation("CreatedBy")
+  createdDispatches       DispatchPlan[]           @relation("CreatedBy")
+  uploadedDocuments       Document[]
+  faiApprovals            FirstArticleInspection[] @relation("FAIApprover")
+  faiInspections          FirstArticleInspection[] @relation("FAIInspector")
+  createdInvoices         Invoice[]                @relation("CreatedBy")
+  accountsApprovals       InvoiceVerification[]    @relation("AccountsApprover")
+  ppcVerifications        InvoiceVerification[]    @relation("PPCVerifier")
+  securityVerifications   InvoiceVerification[]    @relation("SecurityVerifier")
+  closedNCRs              NonConformanceReport[]
+  processUpdates          ProcessUpdate[]
+  approvedPOs             PurchaseOrder[]          @relation("POApprovedBy")
+  createdPOs              PurchaseOrder[]          @relation("POCreatedBy")
+  qualityChecks           QualityCheck[]
+  managedStockStatements  StockStatement[]         @relation("StockManagedBy")
+  verifiedStockStatements StockStatement[]         @relation("StockVerifiedBy")
+  organization            Organization?            @relation(fields: [organizationId], references: [id])
+  reportsTo               User?                    @relation("UserHierarchy", fields: [reportsToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subordinates            User[]                   @relation("UserHierarchy")
+  vendor                  Vendor?                  @relation("VendorUsers", fields: [vendorId], references: [id])
+  plannedDispatches       VehicleDispatch[]        @relation("DispatchPlanner")
+  approvedVendors         Vendor[]                 @relation("ApprovedBy")
+  acceptedQuotations      VendorQuotation[]
+  approvedDevelopments    PartDevelopment[]        @relation("DevelopmentApprover")
+  gateReceipts            MaterialReceipt[]        @relation("GateReceipts")
+  gatePasses              GatePass[]               @relation("GatePassIssuedBy")
+  gateApprovedInvoices    VendorInvoice[]          @relation("GateApprovedInvoices")
+  platformActions         PlatformAuditLog[]       @relation("PlatformActionBy")
+  createdPartOperations   PartOperation[]          @relation("PartOpCreatedBy")
+  grnReceived             SupplierGRN[]            @relation("GRNReceivedBy")
+  grnInspected            SupplierGRN[]            @relation("GRNInspectedBy")
+  knowledgeItems          KnowledgeItem[]          @relation("KnowledgeCreatedBy")
+  aiFeedbacks             AiFeedback[]             @relation("AiFeedbackUser")
+}
+
+model Customer {
+  id                 String              @id @default(uuid())
+  code               String              @unique
+  contactPerson      String?
+  email              String?
+  phone              String?
+  address            String?
+  city               String?
+  state              String?
+  pincode            String?
+  gstin              String?             @unique
+  pan                String?
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  companyName        String
+  createdById        String?
+  organizationId     String?
+  createdBy          User?               @relation("CreatedBy", fields: [createdById], references: [id])
+  organization       Organization?       @relation(fields: [organizationId], references: [id])
+  deliveryChallans   DeliveryChallan[]
+  dispatchPlans      DispatchPlan[]
+  invoices           Invoice[]
+  vendors            Vendor[]
+  vendorInvoices     VendorInvoice[]     @relation("VendorInvoices")
+  trayConfigurations TrayConfiguration[]
+  orders             CustomerOrder[]
+  lineDeadlines      LineDeadline[]
+}
+
+model Vendor {
+  id                  String                   @id @default(uuid())
+  contactPerson       String?
+  email               String?
+  phone               String?
+  address             String?
+  city                String?
+  state               String?
+  pincode             String?
+  gstin               String?                  @unique
+  pan                 String?
+  isActive            Boolean                  @default(true)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  accountNumber       String?
+  approvedAt          DateTime?
+  approvedById        String?
+  bankName            String?
+  companyName         String
+  customerId          String?
+  ifscCode            String?
+  logoUrl             String?
+  organizationId      String?
+  vendorCode          String                   @unique
+  status              VendorStatus             @default(pending)
+  deliveryChallans    DeliveryChallan[]
+  dispatchPlans       DispatchPlan[]
+  faiRecords          FirstArticleInspection[]
+  invoices            Invoice[]
+  ncrs                NonConformanceReport[]
+  purchaseOrders      PurchaseOrder[]
+  stockStatements     StockStatement[]
+  users               User[]                   @relation("VendorUsers")
+  approvedBy          User?                    @relation("ApprovedBy", fields: [approvedById], references: [id])
+  customer            Customer?                @relation(fields: [customerId], references: [id])
+  organization        Organization?            @relation(fields: [organizationId], references: [id])
+  capabilities        VendorCapability[]
+  vendorInvoices      VendorInvoice[]          @relation("VendorInvoices")
+  quotations          VendorQuotation[]
+  rateCards           VendorRateCard[]
+  partDevelopments    PartDevelopment[]
+  materialReceipts    MaterialReceipt[]
+  ledgerEntries       VendorMaterialLedger[]
+  linkedOrganizations OrganizationVendor[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model OrganizationVendor {
+  id             String       @id @default(uuid())
+  organizationId String
+  vendorId       String
+  status         String       @default("active")
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  vendor         Vendor       @relation(fields: [vendorId], references: [id])
+
+  @@unique([organizationId, vendorId])
+}
+
+model VendorCapability {
+  id               String   @id @default(uuid())
+  vendorId         String
+  processName      String
+  machineCount     Int?
+  capacityPerMonth Int?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  vendor           Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+}
+
+model DeliveryChallan {
+  id              String                 @id @default(uuid())
+  challanNumber   String                 @unique
+  challanDate     DateTime
+  copyType        String                 @default("Original")
+  organizationId  String?
+  poId            String?
+  jobWorkType     JobWorkType?
+  poNumber        String?
+  placeOfSupply   String?
+  vehicleNumber   String?
+  driverName      String?
+  driverPhone     String?
+  transporterName String?
+  transportMode   String?
+  ewayBillNumber  String?
+  ewayBillDate    DateTime?
+  ewayBillExpiry  DateTime?
+  remarks         String?
+  totalQuantity   Int
+  totalAmount     Float?
+  issuerDetails   Json?
+  status          ChallanStatus          @default(draft)
+  customerId      String
+  vendorId        String
+  createdById     String
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  items           ChallanItem[]
+  stockItems      ChallanStockItem[]
+  createdBy       User                   @relation("CreatedBy", fields: [createdById], references: [id])
+  customer        Customer               @relation(fields: [customerId], references: [id])
+  organization    Organization?          @relation(fields: [organizationId], references: [id])
+  purchaseOrder   PurchaseOrder?         @relation(fields: [poId], references: [id])
+  vendor          Vendor                 @relation(fields: [vendorId], references: [id])
+  invoices        InvoiceItem[]
+  qualityChecks   QualityCheck[]
+  ledgerEntries   VendorMaterialLedger[]
+
+  @@index([vendorId])
+  @@index([organizationId])
+  @@index([challanDate])
+  @@index([status])
+}
+
+model ChallanItem {
+  id                 String                @id @default(uuid())
+  challanId          String
+  partNumber         String
+  partDescription    String?
+  hsnCode            String?
+  outputPartNumber   String?
+  outputDescription  String?
+  poItemId           String?
+  quantityIssued     Int
+  unitOfMeasure      String?
+  materialGrade      String?
+  drawingReference   String?
+  unitPrice          Float?
+  totalAmount        Float?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  deadlineNote       String?
+  executiveDeadline  DateTime?
+  challan            DeliveryChallan       @relation(fields: [challanId], references: [id], onDelete: Cascade)
+  poItem             POItem?               @relation(fields: [poItemId], references: [id])
+  dispatchItems      DispatchItem[]
+  jobProcesses       JobProcess[]
+  vendorInvoiceItems VendorInvoiceItem[]
+  receiptItems       MaterialReceiptItem[]
+
+  @@index([challanId])
+  @@index([partNumber])
+}
+
+model JobProcess {
+  id                String          @id @default(uuid())
+  challanItemId     String
+  processName       String
+  processType       String?
+  processSequence   Int?
+  executionType     ExecutionType   @default(outsourced)
+  machineId         String?
+  status            ProcessStatus   @default(pending)
+  targetQuantity    Int?
+  completedQuantity Int             @default(0)
+  rejectedQuantity  Int             @default(0)
+  reworkQuantity    Int             @default(0)
+  remarks           String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  measurements      Json?
+  liveCheckLink     String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  challanItem       ChallanItem     @relation(fields: [challanItemId], references: [id], onDelete: Cascade)
+  machine           Machine?        @relation(fields: [machineId], references: [id])
+  processUpdates    ProcessUpdate[]
+  qualityChecks     QualityCheck[]
+
+  @@index([challanItemId])
+  @@index([status])
+  @@index([processSequence])
+}
+
+model ProcessUpdate {
+  id                String     @id @default(uuid())
+  jobProcessId      String
+  quantityCompleted Int
+  quantityRejected  Int        @default(0)
+  quantityRework    Int        @default(0)
+  remarks           String?
+  updatedById       String?
+  createdAt         DateTime   @default(now())
+  jobProcess        JobProcess @relation(fields: [jobProcessId], references: [id], onDelete: Cascade)
+  updatedBy         User?      @relation(fields: [updatedById], references: [id])
+
+  @@index([jobProcessId])
+}
+
+model DispatchPlan {
+  id                String            @id @default(uuid())
+  customerId        String
+  vendorId          String
+  plannedDate       DateTime
+  vehicleNumber     String?
+  driverName        String?
+  driverPhone       String?
+  status            DispatchStatus    @default(planned)
+  totalTrays        Int?
+  notes             String?
+  createdById       String?
+  vehicleDispatchId String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  items             DispatchItem[]
+  createdBy         User?             @relation("CreatedBy", fields: [createdById], references: [id])
+  customer          Customer          @relation(fields: [customerId], references: [id])
+  vendor            Vendor            @relation(fields: [vendorId], references: [id])
+  vehicleDispatch   VehicleDispatch?  @relation(fields: [vehicleDispatchId], references: [id])
+  materialReceipts  MaterialReceipt[]
+}
+
+model DispatchItem {
+  id                 String       @id @default(uuid())
+  dispatchPlanId     String
+  challanItemId      String
+  quantityDispatched Int
+  traysUsed          Int?
+  createdAt          DateTime     @default(now())
+  challanItem        ChallanItem  @relation(fields: [challanItemId], references: [id])
+  dispatchPlan       DispatchPlan @relation(fields: [dispatchPlanId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  invoiceType   InvoiceType   @default(tax_invoice)
+  vendorId      String
+  customerId    String
+  invoiceDate   DateTime
+  dueDate       DateTime?
+  totalAmount   Float
+  cgstAmount    Float         @default(0)
+  sgstAmount    Float         @default(0)
+  igstAmount    Float         @default(0)
+  grandTotal    Float
+  status        InvoiceStatus @default(draft)
+  paymentTerms  String?
+  remarks       String?
+  invoicePdfUrl String?
+  createdById   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  createdBy     User?         @relation("CreatedBy", fields: [createdById], references: [id])
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  vendor        Vendor        @relation(fields: [vendorId], references: [id])
+  items         InvoiceItem[]
+
+  @@index([vendorId])
+  @@index([customerId])
+  @@index([status])
+  @@index([vendorId, status])
+  @@index([invoiceDate])
+}
+
+model InvoiceItem {
+  id          String           @id @default(uuid())
+  invoiceId   String
+  challanId   String?
+  partNumber  String
+  description String?
+  quantity    Int
+  rate        Float
+  amount      Float
+  createdAt   DateTime         @default(now())
+  challan     DeliveryChallan? @relation(fields: [challanId], references: [id])
+  invoice     Invoice          @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([challanId])
+  @@index([partNumber])
+  @@index([challanId, partNumber])
+}
+
+model VendorInvoice {
+  id                String               @id @default(uuid())
+  invoiceNumber     String               @unique
+  invoiceDate       DateTime
+  vendorId          String
+  customerId        String
+  poId              String?
+  vehicleDispatchId String?
+  subtotal          Float
+  cgst              Float                @default(0)
+  sgst              Float                @default(0)
+  igst              Float                @default(0)
+  totalAmount       Float
+  vendorGstin       String?
+  customerGstin     String?
+  placeOfSupply     String?
+  isInterState      Boolean              @default(false)
+  status            InvoiceStatus        @default(draft)
+  paidAmount        Float                @default(0)
+  balanceAmount     Float
+  remarks           String?
+  gateApprovedById  String?
+  gateApprovedAt    DateTime?
+  gateRemarks       String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  verification      InvoiceVerification?
+  gateApprovedBy    User?                @relation("GateApprovedInvoices", fields: [gateApprovedById], references: [id])
+  customer          Customer             @relation("VendorInvoices", fields: [customerId], references: [id])
+  purchaseOrder     PurchaseOrder?       @relation(fields: [poId], references: [id])
+  vehicleDispatch   VehicleDispatch?     @relation(fields: [vehicleDispatchId], references: [id])
+  vendor            Vendor               @relation("VendorInvoices", fields: [vendorId], references: [id])
+  items             VendorInvoiceItem[]
+
+  @@index([vendorId])
+  @@index([customerId])
+  @@index([status])
+  @@index([vendorId, status])
+  @@index([invoiceDate])
+}
+
+model VendorInvoiceItem {
+  id              String        @id @default(uuid())
+  invoiceId       String
+  challanItemId   String
+  partNumber      String
+  partDescription String?
+  hsnCode         String?
+  challanQuantity Int
+  invoiceQuantity Int
+  unitPrice       Float
+  amount          Float
+  cgstRate        Float         @default(0)
+  cgstAmount      Float         @default(0)
+  sgstRate        Float         @default(0)
+  sgstAmount      Float         @default(0)
+  igstRate        Float         @default(0)
+  igstAmount      Float         @default(0)
+  totalAmount     Float
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  operationName   String?
+  gateReceivedQty Int?
+  gateRemarks     String?
+  challanItem     ChallanItem   @relation(fields: [challanItemId], references: [id])
+  invoice         VendorInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([challanItemId])
+  @@index([invoiceId])
+}
+
+model Document {
+  id           String   @id @default(uuid())
+  entityType   String
+  entityId     String
+  documentType String
+  fileName     String
+  fileUrl      String
+  fileSize     Int?
+  uploadedById String?
+  createdAt    DateTime @default(now())
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+}
+
+model TrayConfiguration {
+  id             String       @id @default(uuid())
+  organizationId String
+  customerId     String?
+  partNumber     String
+  capacity       Int
+  description    String?
+  unit           String       @default("NOS")
+  stages         Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  customer       Customer?    @relation(fields: [customerId], references: [id])
+
+  @@unique([organizationId, customerId, partNumber])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+}
+
+model PurchaseOrder {
+  id                 String                   @id @default(uuid())
+  poNumber           String                   @unique
+  poDate             DateTime
+  organizationId     String
+  vendorId           String
+  quotationId        String?
+  jobWorkType        JobWorkType
+  deliveryDate       DateTime?
+  deliveryAddress    String?
+  paymentTerms       String?
+  advancePayment     Float?                   @default(0)
+  subtotal           Float
+  cgst               Float                    @default(0)
+  sgst               Float                    @default(0)
+  igst               Float                    @default(0)
+  totalAmount        Float
+  status             POStatus                 @default(draft)
+  createdById        String
+  approvedById       String?
+  approvedAt         DateTime?
+  rejectionReason    String?
+  termsAndConditions String?
+  remarks            String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  challans           DeliveryChallan[]
+  faiRecords         FirstArticleInspection[]
+  items              POItem[]
+  approvedBy         User?                    @relation("POApprovedBy", fields: [approvedById], references: [id])
+  createdBy          User                     @relation("POCreatedBy", fields: [createdById], references: [id])
+  organization       Organization             @relation(fields: [organizationId], references: [id])
+  quotation          VendorQuotation?         @relation(fields: [quotationId], references: [id])
+  vendor             Vendor                   @relation(fields: [vendorId], references: [id])
+  invoices           VendorInvoice[]
+  supplierGRNs       SupplierGRN[]
+}
+
+model POItem {
+  id               String            @id @default(uuid())
+  poId             String
+  partNumber       String
+  partDescription  String?
+  hsnCode          String?
+  drawingNumber    String?
+  quantity         Int
+  unitOfMeasure    String            @default("NOS")
+  operations       String[]
+  ratePerPiece     Float
+  amount           Float
+  materialGrade    String?
+  materialCost     Float?            @default(0)
+  deliverySchedule DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  challanItems     ChallanItem[]
+  grnItems         SupplierGRNItem[]
+  po               PurchaseOrder     @relation(fields: [poId], references: [id], onDelete: Cascade)
+}
+
+model VendorRateCard {
+  id            String    @id @default(uuid())
+  vendorId      String
+  operationType String
+  rateType      String
+  baseRate      Float
+  minimumCharge Float?
+  validFrom     DateTime  @default(now())
+  validUntil    DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  vendor        Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+}
+
+model StockStatement {
+  id              String               @id @default(uuid())
+  statementNumber String               @unique
+  statementDate   DateTime
+  organizationId  String
+  vendorId        String
+  periodFrom      DateTime
+  periodTo        DateTime
+  status          String               @default("draft")
+  verifiedById    String?
+  verifiedAt      DateTime?
+  managedById     String?
+  remarks         String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  challanItems    ChallanStockItem[]
+  managedBy       User?                @relation("StockManagedBy", fields: [managedById], references: [id])
+  organization    Organization         @relation(fields: [organizationId], references: [id])
+  vendor          Vendor               @relation(fields: [vendorId], references: [id])
+  verifiedBy      User?                @relation("StockVerifiedBy", fields: [verifiedById], references: [id])
+  items           StockStatementItem[]
+
+  @@unique([organizationId, vendorId, statementNumber])
+}
+
+model StockStatementItem {
+  id               String         @id @default(uuid())
+  stockStatementId String
+  partNumber       String
+  partDescription  String?
+  openingBalance   Int            @default(0)
+  receivedQty      Int            @default(0)
+  consumedQty      Int            @default(0)
+  rejectedQty      Int            @default(0)
+  returnedQty      Int            @default(0)
+  closingBalance   Int
+  physicalStock    Int?
+  variance         Int?
+  varianceReason   String?
+  remarks          String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  stockStatement   StockStatement @relation(fields: [stockStatementId], references: [id], onDelete: Cascade)
+}
+
+model ChallanStockItem {
+  id            String          @id @default(uuid())
+  statementId   String
+  challanId     String
+  challanNumber String
+  challanDate   DateTime
+  partNumber    String
+  partName      String?
+  challanQty    Int
+  dispatchQty   Int
+  balanceQty    Int
+  createdAt     DateTime        @default(now())
+  challan       DeliveryChallan @relation(fields: [challanId], references: [id])
+  statement     StockStatement  @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+  @@index([statementId, challanId])
+  @@index([partNumber])
+}
+
+model QualityCheck {
+  id           String                 @id @default(uuid())
+  checkNumber  String                 @unique
+  checkDate    DateTime
+  challanId    String?
+  jobProcessId String?
+  inspectorId  String
+  sampleSize   Int
+  acceptedQty  Int
+  rejectedQty  Int
+  reworkQty    Int
+  status       QualityStatus
+  defects      Json?
+  remarks      String?
+  attachments  String[]
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  ncrs         NonConformanceReport[]
+  challan      DeliveryChallan?       @relation(fields: [challanId], references: [id])
+  inspector    User                   @relation(fields: [inspectorId], references: [id])
+  jobProcess   JobProcess?            @relation(fields: [jobProcessId], references: [id])
+}
+
+model EndCustomer {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String
+  code           String       @unique
+  contactPerson  String?
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  state          String?
+  pincode        String?
+  gstin          String?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  parts          Part[]
+}
+
+model Part {
+  id             String                   @id @default(uuid())
+  organizationId String
+  endCustomerId  String?
+  supplierId     String?
+  partNumber     String
+  partName       String?
+  description    String?
+  drawingNumber  String?
+  revision       String?
+  materialType   String? // casting, forging, sheet_metal, bar_stock, other
+  materialGrade  String?
+  hsnCode        String?
+  unitOfMeasure  String                   @default("NOS")
+  weight         Float?
+  operations     Json?
+  currentStatus  String?
+  dispatchTarget Int?                     @default(0)
+  isActive       Boolean                  @default(true)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  faiRecords     FirstArticleInspection[]
+  developments   PartDevelopment[]
+  endCustomer    EndCustomer?             @relation(fields: [endCustomerId], references: [id])
+  organization   Organization             @relation(fields: [organizationId], references: [id])
+  supplier       Supplier?                @relation(fields: [supplierId], references: [id])
+  partOperations PartOperation[]
+
+  @@unique([organizationId, partNumber])
+}
+
+// ─── Supplier (Raw Material Suppliers: casting/forging houses) ────────────────
+
+model Supplier {
+  id             String        @id @default(uuid())
+  organizationId String
+  supplierCode   String
+  companyName    String
+  materialTypes  String[] // e.g. ["casting","forging"]
+  contactPerson  String?
+  email          String?
+  phone          String?
+  address        String?
+  gstin          String?
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  parts          Part[]
+  supplierGRNs   SupplierGRN[]
+
+  @@unique([organizationId, supplierCode])
+  @@index([organizationId])
+}
+
+// ─── Part Job Cycle (Process Route) ──────────────────────────────────────────
+// Managed only by Production/Leadership — PPC is view-only.
+
+model PartOperation {
+  id                String        @id @default(uuid())
+  partId            String
+  sequenceNumber    Int // 10, 20, 30… (gaps allowed for insertions)
+  operationCode     String? // e.g. "OP-10"
+  operationName     String // e.g. "CNC Turning", "Surface Grinding"
+  executionType     ExecutionType @default(inhouse)
+  machineType       String? // for inhouse ops (e.g. "CNC Lathe", "VMC")
+  vendorCapability  String? // for outsourced ops (e.g. "Grinding", "Plating")
+  standardCycleTime Float? // minutes per piece
+  notes             String?
+  pcpDocumentUrl    String?
+  isActive          Boolean       @default(true)
+  createdById       String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  part      Part @relation(fields: [partId], references: [id], onDelete: Cascade)
+  createdBy User @relation("PartOpCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([partId, sequenceNumber])
+  @@index([partId])
+}
+
+model VendorQuotation {
+  id              String          @id @default(uuid())
+  quotationNumber String          @unique
+  quotationDate   DateTime
+  organizationId  String
+  vendorId        String
+  rfqNumber       String?
+  rfqDate         DateTime?
+  items           Json
+  validFrom       DateTime        @default(now())
+  validUntil      DateTime
+  paymentTerms    String?
+  deliveryTerms   String?
+  remarks         String?
+  status          String          @default("pending")
+  acceptedById    String?
+  acceptedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  purchaseOrders  PurchaseOrder[]
+  acceptedBy      User?           @relation(fields: [acceptedById], references: [id])
+  organization    Organization    @relation(fields: [organizationId], references: [id])
+  vendor          Vendor          @relation(fields: [vendorId], references: [id])
+}
+
+model FirstArticleInspection {
+  id                String           @id @default(uuid())
+  faiNumber         String           @unique
+  faiDate           DateTime
+  organizationId    String
+  partId            String
+  vendorId          String
+  poId              String?
+  inspectorId       String
+  sampleSize        Int
+  inspectionSheet   Json
+  status            String           @default("pending")
+  approvedById      String?
+  approvedAt        DateTime?
+  remarks           String?
+  attachments       String[]
+  partDevelopmentId String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  approvedBy        User?            @relation("FAIApprover", fields: [approvedById], references: [id])
+  inspector         User             @relation("FAIInspector", fields: [inspectorId], references: [id])
+  organization      Organization     @relation(fields: [organizationId], references: [id])
+  part              Part             @relation(fields: [partId], references: [id])
+  purchaseOrder     PurchaseOrder?   @relation(fields: [poId], references: [id])
+  vendor            Vendor           @relation(fields: [vendorId], references: [id])
+  partDevelopment   PartDevelopment? @relation(fields: [partDevelopmentId], references: [id])
+}
+
+model NonConformanceReport {
+  id                String        @id @default(uuid())
+  ncrNumber         String        @unique
+  ncrDate           DateTime
+  organizationId    String
+  qualityCheckId    String?
+  vendorId          String
+  issueDescription  String
+  defectType        String
+  severity          String
+  quantityAffected  Int
+  d1_team           String?
+  d2_problem        String?
+  d3_containment    String?
+  d4_rootCause      String?
+  d5_corrective     String?
+  d6_implementation String?
+  d7_prevention     String?
+  d8_congratulate   String?
+  status            String        @default("open")
+  closedById        String?
+  closedAt          DateTime?
+  attachments       String[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  closedBy          User?         @relation(fields: [closedById], references: [id])
+  organization      Organization  @relation(fields: [organizationId], references: [id])
+  qualityCheck      QualityCheck? @relation(fields: [qualityCheckId], references: [id])
+  vendor            Vendor        @relation(fields: [vendorId], references: [id])
+}
+
+model InvoiceVerification {
+  id                   String        @id @default(uuid())
+  invoiceId            String        @unique
+  securityVerifiedById String?
+  securityVerifiedAt   DateTime?
+  securityRemarks      String?
+  ppcVerifiedById      String?
+  ppcVerifiedAt        DateTime?
+  ppcRemarks           String?
+  accountsApprovedById String?
+  accountsApprovedAt   DateTime?
+  accountsRemarks      String?
+  status               String        @default("submitted")
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  accountsApprovedBy   User?         @relation("AccountsApprover", fields: [accountsApprovedById], references: [id])
+  vendorInvoice        VendorInvoice @relation(fields: [invoiceId], references: [id])
+  ppcVerifiedBy        User?         @relation("PPCVerifier", fields: [ppcVerifiedById], references: [id])
+  securityVerifiedBy   User?         @relation("SecurityVerifier", fields: [securityVerifiedById], references: [id])
+}
+
+model VehicleDispatch {
+  id             String          @id @default(uuid())
+  organizationId String
+  vehicleNumber  String
+  driverName     String
+  driverPhone    String?
+  dispatchDate   DateTime
+  plannedBy      String
+  route          Json
+  status         String          @default("planned")
+  completedAt    DateTime?
+  remarks        String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  ppcUser        User            @relation("DispatchPlanner", fields: [plannedBy], references: [id])
+  invoices       VendorInvoice[]
+  dispatchPlans  DispatchPlan[]
+}
+
+model Alert {
+  id             String       @id @default(uuid())
+  organizationId String
+  type           String
+  severity       String
+  title          String
+  message        String
+  entityType     String?
+  entityId       String?
+  recipientIds   String[]
+  isRead         Boolean      @default(false)
+  readBy         String[]
+  actionRequired Boolean      @default(false)
+  actionUrl      String?
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+enum UserRole {
+  admin
+  customer
+  vendor
+  platform_admin
+  director
+  executive
+  gm
+  production_manager
+  ppc_manager
+  quality_head
+  vendor_owner
+  vendor_ppc
+  vendor_supervisor
+  vendor_user
+  plant_head
+  accounts_manager
+  quality_supervisor
+  store_keeper
+  security
+}
+
+enum Department {
+  executive
+  production
+  planning
+  quality
+  store
+  ppc
+  accounts
+  security
+  vendor
+}
+
+enum VendorStatus {
+  pending
+  approved
+  rejected
+  suspended
+}
+
+enum ChallanStatus {
+  draft
+  issued
+  received
+  rejected
+  closed
+}
+
+enum ProcessStatus {
+  pending
+  in_progress
+  completed
+  rejected
+}
+
+enum DispatchStatus {
+  planned
+  in_transit
+  delivered
+}
+
+enum InvoiceStatus {
+  draft
+  submitted
+  gate_approved
+  approved
+  paid
+  cancelled
+}
+
+enum InvoiceType {
+  tax_invoice
+  job_work_invoice
+}
+
+enum JobWorkType {
+  with_material
+  maesof
+}
+
+enum POStatus {
+  draft
+  pending_approval
+  approved
+  rejected
+  in_progress
+  completed
+  cancelled
+}
+
+enum QualityStatus {
+  pending
+  in_progress
+  passed
+  failed
+  conditional_pass
+}
+
+// ─── Change 1: ExecutionType enum ────────────────────────────────────────────
+
+enum ExecutionType {
+  inhouse
+  outsourced
+}
+
+// ─── Change 1: Machine model ─────────────────────────────────────────────────
+
+model Machine {
+  id             String       @id @default(uuid())
+  organizationId String
+  machineCode    String       @unique
+  machineName    String
+  machineType    String
+  department     String?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  jobProcesses   JobProcess[]
+}
+
+// ─── Change 2: DevStage enum ─────────────────────────────────────────────────
+
+enum DevStage {
+  drawing_shared
+  sample_submitted
+  first_article_inspection
+  approved
+  rejected
+}
+
+// ─── Change 2: PartDevelopment model ─────────────────────────────────────────
+
+model PartDevelopment {
+  id              String                   @id @default(uuid())
+  organizationId  String
+  partId          String
+  vendorId        String
+  stage           DevStage                 @default(drawing_shared)
+  drawingVersion  String?
+  drawingUrl      String?
+  targetDate      DateTime?
+  approvedAt      DateTime?
+  approvedById    String?
+  rejectionReason String?
+  remarks         String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  organization    Organization             @relation(fields: [organizationId], references: [id])
+  part            Part                     @relation(fields: [partId], references: [id])
+  vendor          Vendor                   @relation(fields: [vendorId], references: [id])
+  approvedBy      User?                    @relation("DevelopmentApprover", fields: [approvedById], references: [id])
+  faiRecords      FirstArticleInspection[]
+}
+
+// ─── Change 3: CustomerOrderStatus enum ──────────────────────────────────────
+
+enum CustomerOrderStatus {
+  active
+  completed
+  cancelled
+  on_hold
+}
+
+// ─── Change 3: CustomerOrder and CustomerOrderItem models ────────────────────
+
+model CustomerOrder {
+  id             String              @id @default(uuid())
+  organizationId String
+  customerId     String
+  orderNumber    String              @unique
+  customerPoRef  String?
+  orderDate      DateTime
+  deliveryDate   DateTime?
+  remarks        String?
+  status         CustomerOrderStatus @default(active)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  organization   Organization        @relation(fields: [organizationId], references: [id])
+  customer       Customer            @relation(fields: [customerId], references: [id])
+  items          CustomerOrderItem[]
+}
+
+model CustomerOrderItem {
+  id              String        @id @default(uuid())
+  orderId         String
+  partNumber      String
+  customerPartNo  String?
+  partDescription String?
+  quantity        Int
+  deliveredQty    Int           @default(0)
+  pendingQty      Int
+  unitPrice       Float?
+  deliveryDate    DateTime?
+  remarks         String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  order           CustomerOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([partNumber])
+  @@index([orderId])
+}
+
+// ─── Change 5: ReceiptStatus enum ────────────────────────────────────────────
+
+enum ReceiptStatus {
+  pending_inspection
+  inspected
+  accepted
+  partially_accepted
+  rejected
+}
+
+// ─── Change 5: MaterialReceipt and MaterialReceiptItem models ─────────────────
+
+model MaterialReceipt {
+  id             String                 @id @default(uuid())
+  organizationId String
+  receiptNumber  String                 @unique
+  receiptDate    DateTime
+  vendorId       String
+  dispatchPlanId String?
+  vehicleNumber  String?
+  driverName     String?
+  receivedById   String
+  status         ReceiptStatus          @default(pending_inspection)
+  remarks        String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id])
+  vendor         Vendor                 @relation(fields: [vendorId], references: [id])
+  dispatchPlan   DispatchPlan?          @relation(fields: [dispatchPlanId], references: [id])
+  receivedBy     User                   @relation("GateReceipts", fields: [receivedById], references: [id])
+  items          MaterialReceiptItem[]
+  ledgerEntries  VendorMaterialLedger[]
+}
+
+model MaterialReceiptItem {
+  id             String          @id @default(uuid())
+  receiptId      String
+  challanItemId  String
+  expectedQty    Int
+  receivedQty    Int
+  shortQty       Int             @default(0)
+  excessQty      Int             @default(0)
+  rejectedAtGate Int             @default(0)
+  remarks        String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  receipt        MaterialReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  challanItem    ChallanItem     @relation(fields: [challanItemId], references: [id])
+}
+
+// ─── Change 6: LedgerEntryType enum ──────────────────────────────────────────
+
+enum LedgerEntryType {
+  material_issued
+  material_returned
+  rejected_returned
+  adjustment
+}
+
+// ─── Change 6: VendorMaterialLedger model ────────────────────────────────────
+
+model VendorMaterialLedger {
+  id             String           @id @default(uuid())
+  organizationId String
+  vendorId       String
+  partNumber     String
+  entryType      LedgerEntryType
+  challanId      String?
+  receiptId      String?
+  quantity       Int
+  balanceAfter   Int
+  remarks        String?
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  vendor         Vendor           @relation(fields: [vendorId], references: [id])
+  challan        DeliveryChallan? @relation(fields: [challanId], references: [id])
+  receipt        MaterialReceipt? @relation(fields: [receiptId], references: [id])
+
+  @@index([organizationId, vendorId, partNumber])
+}
+
+model PlatformAuditLog {
+  id             String        @id @default(uuid())
+  action         String
+  adminId        String
+  organizationId String?
+  details        String?
+  createdAt      DateTime      @default(now())
+  admin          User          @relation("PlatformActionBy", fields: [adminId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+}
+
+// ─── Platform-wide key-value settings (e.g. ANTHROPIC_API_KEY) ──────────────
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Gate Pass (Security module) ─────────────────────────────────────────────
+
+enum GatePassStatus {
+  active
+  closed
+  overstay
+}
+
+model GatePass {
+  id             String         @id @default(uuid())
+  passNumber     String         @unique
+  organizationId String
+  visitorName    String
+  visitorPhone   String?
+  visitorCompany String?
+  idProofType    String?
+  idProofNumber  String?
+  purpose        String
+  personToMeet   String?
+  vehicleNumber  String?
+  entryTime      DateTime       @default(now())
+  exitTime       DateTime?
+  status         GatePassStatus @default(active)
+  remarks        String?
+  issuedById     String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  issuedBy       User           @relation("GatePassIssuedBy", fields: [issuedById], references: [id])
+}
+
+// ─── Supplier GRN (Goods Receipt Note from Supplier) ─────────────────────────
+// Tracks castings/forgings received from suppliers against POs.
+// This fills the blind spot: Supplier → OEM Store → Vendor (challan).
+
+enum GRNStatus {
+  draft
+  received
+  inspected
+}
+
+model SupplierGRN {
+  id             String    @id @default(uuid())
+  organizationId String
+  grnNumber      String    @unique
+  grnDate        DateTime
+  supplierId     String
+  poId           String?
+  vehicleNumber  String?
+  driverName     String?
+  driverPhone    String?
+  invoiceNumber  String? // supplier's DC/invoice number
+  remarks        String?
+  status         GRNStatus @default(draft)
+  receivedById   String
+  inspectedById  String?
+  inspectedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization  Organization      @relation(fields: [organizationId], references: [id])
+  supplier      Supplier          @relation(fields: [supplierId], references: [id])
+  purchaseOrder PurchaseOrder?    @relation(fields: [poId], references: [id])
+  receivedBy    User              @relation("GRNReceivedBy", fields: [receivedById], references: [id])
+  inspectedBy   User?             @relation("GRNInspectedBy", fields: [inspectedById], references: [id])
+  items         SupplierGRNItem[]
+
+  @@index([organizationId, supplierId])
+  @@index([organizationId, grnDate])
+}
+
+model SupplierGRNItem {
+  id              String   @id @default(uuid())
+  grnId           String
+  poItemId        String?
+  partNumber      String
+  partDescription String?
+  expectedQty     Int      @default(0)
+  receivedQty     Int
+  rejectedQty     Int      @default(0)
+  remarks         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  grn    SupplierGRN @relation(fields: [grnId], references: [id], onDelete: Cascade)
+  poItem POItem?     @relation(fields: [poItemId], references: [id])
+
+  @@index([grnId])
+  @@index([partNumber])
+}
+
+// ─── LineDeadline: Monthly line-wise targets per customer + part ──────────────
+
+model LineDeadline {
+  id               String   @id @default(uuid())
+  organizationId   String
+  customerId       String
+  partNumber       String
+  month            Int // 1–12
+  year             Int
+  monthlyTarget    Int      @default(0)
+  week1Target      Int      @default(0)
+  week2Target      Int      @default(0)
+  week3Target      Int      @default(0)
+  week4Target      Int      @default(0)
+  readyForDispatch Int      @default(0)
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  customer     Customer     @relation(fields: [customerId], references: [id])
+
+  @@unique([organizationId, customerId, partNumber, month, year])
+  @@index([organizationId, month, year])
+  @@index([customerId])
+}
+
+// ─── AiConversation: Persistent multi-turn chat history per user ──────────────
+
+model AiConversation {
+  id        String   @id @default(uuid())
+  userId    String
+  role      String // 'user' | 'assistant'
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ─── AI Knowledge Center ──────────────────────────────────────────────────────
+// Admins enter structured business context about customers, vendors, parts, etc.
+// This knowledge is injected into every JARVIS system prompt.
+
+enum KnowledgeCategory {
+  customer_profile
+  vendor_profile
+  part_profile
+  business_rule
+  sop
+  company_context
+}
+
+model KnowledgeItem {
+  id             String            @id @default(uuid())
+  organizationId String
+  category       KnowledgeCategory
+  title          String
+  content        String            @db.Text
+  tags           String[]
+  visibleToRoles String[]          // empty = visible to all internal roles
+  isActive       Boolean           @default(true)
+  createdById    String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  createdBy    User         @relation("KnowledgeCreatedBy", fields: [createdById], references: [id])
+
+  @@index([organizationId, category])
+  @@index([organizationId, isActive])
+}
+
+// ─── AI Feedback: thumbs up/down on JARVIS chat responses ────────────────────
+
+model AiFeedback {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  query          String   @db.Text
+  response       String   @db.Text
+  rating         Int      // 1 = thumbs up, -1 = thumbs down
+  reason         String?  // 'wrong_data' | 'not_useful' | 'missed_context' | 'other'
+  comment        String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation("AiFeedbackUser", fields: [userId], references: [id])
+
+  @@index([organizationId, createdAt])
+}

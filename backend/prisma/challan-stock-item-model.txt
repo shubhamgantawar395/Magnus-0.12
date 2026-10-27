@@ -1,0 +1,26 @@
+// New challan-based stock tracking model
+model ChallanStockItem {
+  id              String   @id @default(uuid())
+  statementId     String
+  statement       StockStatement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  
+  // Challan reference
+  challanId       String
+  challan         DeliveryChallan @relation(fields: [challanId], references: [id])
+  challanNumber   String
+  challanDate     DateTime
+  
+  // Part details
+  partNumber      String
+  partName        String?
+  
+  // Quantities
+  challanQty      Int      // Original issued quantity from challan
+  dispatchQty     Int      // Total dispatched via invoices (FIFO allocated)
+  balanceQty      Int      // challanQty - dispatchQty
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([statementId, challanId])
+  @@index([partNumber])
+}

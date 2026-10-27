@@ -1,0 +1,39 @@
+        // Fetch all relevant process updates for the period
+        const updates = await this.prisma.processUpdate.findMany({
+            where: {
+                createdAt: { gte: startDate, lte: endDate },
+                jobProcess: {
+                    processSequence: 1, // Only count first process as "Consumption of RM"
+                    challanItem: {
+                        challan: {
+                            organizationId,
+                            vendorId
+                        }
+                    }
+                }
+            },
+            include: {
+                jobProcess: {
+                    include: {
+                        challanItem: true
+                    }
+                }
+            }
+        });
+
+        const stats = new Map<string, { consumed: number, rejected: number }>();
+
+        for (const update of updates) {
+            const partNumber = update.jobProcess.challanItem.partNumber;
+            if (!stats.has(partNumber)) {
+                stats.set(partNumber, { consumed: 0, rejected: 0 });
+            }
+            const entry = stats.get(partNumber);
+            entry.consumed += update.quantityCompleted;
+            entry.rejected += update.quantityRejected;
+            // rework doesn't consume new material usually, it stays in line
+        }
+
+        return stats;
+    }
+}
