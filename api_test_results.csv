@@ -1,0 +1,7 @@
+"Endpoint","Method","Description","Status","Result"
+"/","GET","API Root","200","PASS"
+"/auth/login","POST","Vendor Login","201","PASS"
+"/jobs/ready-for-dispatch","GET","Get Ready for Dispatch Jobs","403","FAIL"
+"/jobs/ready-for-dispatch/by-part","GET","Get Dispatch by Part Number","200","PASS"
+"/vendor-invoices/available-challans","GET","Get Available Challans","200","PASS"
+"/vendor-invoices","GET","Get Vendor Invoices","200","PASS"
